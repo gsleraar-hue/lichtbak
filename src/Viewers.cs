@@ -11,17 +11,52 @@ namespace Lichtbak
     /// All windows of the one Lichtbak process. Decides where opened files go: into the window
     /// used last (the default), or each into a window of its own when that setting is on.
     /// </summary>
+    /// <summary>Win+F3 from anywhere opens the overview.</summary>
+    internal class HotkeyWindow : NativeWindow
+    {
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool RegisterHotKey(IntPtr hwnd, int id, int modifiers, int key);
+
+        private const int WM_HOTKEY = 0x0312, MOD_WIN = 0x8, MOD_NOREPEAT = 0x4000;
+
+        public HotkeyWindow()
+        {
+            CreateHandle(new CreateParams());
+            if (!RegisterHotKey(Handle, 1, MOD_WIN | MOD_NOREPEAT, (int)Keys.F3))
+                Log.Write("Win+F3 is taken by another program");
+        }
+
+        protected override void WndProc(ref Message m)
+        {
+            if (m.Msg == WM_HOTKEY) Viewers.ToggleOverview();
+            base.WndProc(ref m);
+        }
+    }
+
     internal static class Viewers
     {
         private static readonly List<ViewerForm> Windows = new List<ViewerForm>();
         private static ViewerForm _last;
         private static Control _sync;
+        private static Overview _overview;
+        private static HotkeyWindow _hotkey;
 
         /// <summary>Call once on the UI thread before anything else.</summary>
         public static void Init()
         {
             _sync = new Control();
             _sync.CreateControl();
+            _hotkey = new HotkeyWindow();
+        }
+
+        /// <summary>Shows (or hides) the overview of all Lichtbak windows.</summary>
+        public static void ToggleOverview()
+        {
+            if (_overview != null && !_overview.IsDisposed) { _overview.Close(); return; }
+            if (Windows.Count == 0) return;
+            _overview = new Overview(new List<ViewerForm>(Windows), _last);
+            _overview.FormClosed += delegate { _overview = null; };
+            _overview.Show();
         }
 
         /// <summary>Runs an action on the UI thread; safe from any thread.</summary>

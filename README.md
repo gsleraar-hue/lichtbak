@@ -31,6 +31,9 @@ Choose *More info* > *Run anyway*.
 - **Zoom** with Ctrl + mouse wheel or a touchpad pinch, Ctrl+plus/minus, **Ctrl+0** to fit
   the window and **Ctrl+1** for actual size. Double-click switches between the two. When zoomed
   in, drag or scroll to move around.
+- **F3** in Lichtbak, or **Win+F3** from anywhere, shows all Lichtbak windows as tiles on a
+  dark screen, like App Exposé on the Mac: no other apps and no row of desktops as in Task
+  View. Click a tile, or use the arrow keys and Enter, to bring that window forward.
 - **F11** for full screen, **Esc** to leave it.
 - **Delete** removes a picture from the list (the file stays where it is).
   **Ctrl+Delete** moves the file to the Recycle Bin.

@@ -147,6 +147,19 @@ namespace Lichtbak
             if (activate) BringForward();
         }
 
+        /// <summary>The picture on screen, for the overview.</summary>
+        internal Bitmap CurrentBitmap
+        {
+            get
+            {
+                if (_current < 0) return null;
+                Picture p = _items[_current];
+                return p.Preview ?? p.Full ?? p.Thumb;
+            }
+        }
+
+        internal string CurrentName { get { return _current < 0 ? Program.Name : _items[_current].Name; } }
+
         public bool Contains(string path)
         {
             return _items.Any(p => string.Equals(p.Path, path, StringComparison.OrdinalIgnoreCase));
@@ -303,6 +316,7 @@ namespace Lichtbak
             Add(Strings.T("Zoom in", "Inzoomen"), "Ctrl++", delegate { _view.ZoomBy(1.25f, null); });
             Add(Strings.T("Zoom out", "Uitzoomen"), "Ctrl+-", delegate { _view.ZoomBy(0.8f, null); });
             Add(Strings.T("Full screen", "Volledig scherm"), "F11", delegate { ToggleFullScreen(); }).Tag = "always";
+            Add(Strings.T("All Lichtbak windows", "Alle Lichtbak-vensters"), "F3", delegate { Viewers.ToggleOverview(); }).Tag = "always";
             _sidebarItem = Add(Strings.T("Sidebar", "Zijbalk"), "Tab", delegate { ToggleSidebar(); });
             _separateItem = Add(Strings.T("Open each picture in its own window", "Elke afbeelding in een eigen venster"), null, delegate
             {
@@ -347,6 +361,7 @@ namespace Lichtbak
                 case Keys.Control | Keys.D0: case Keys.Control | Keys.NumPad0: _view.Fit(); return true;
                 case Keys.Control | Keys.D1: case Keys.Control | Keys.NumPad1: _view.ActualSize(null); return true;
                 case Keys.F11: ToggleFullScreen(); return true;
+                case Keys.F3: Viewers.ToggleOverview(); return true;
                 case Keys.Escape: if (_fullScreen) ToggleFullScreen(); return true;
                 case Keys.Tab: ToggleSidebar(); return true;
                 case Keys.Delete: Remove(_current); return true;

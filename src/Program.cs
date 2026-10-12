@@ -37,6 +37,11 @@ namespace Lichtbak
                     case "--install": return Install.Run();
                     case "--uninstall": return Install.Uninstall();
                     case "--quit": QuitRunning(); return 0;
+                    case "--selftest-overview":
+                        SetProcessDPIAware();
+                        var rest = new string[args.Length - 2];
+                        Array.Copy(args, 2, rest, 0, rest.Length);
+                        return SelfTest.RenderOverview(args[1], rest);
                     case "--selftest-setup": SetProcessDPIAware(); return SelfTest.RenderSetup(args[1]);
                     case "--selftest": SetProcessDPIAware(); return SelfTest.Run(args);
                 }

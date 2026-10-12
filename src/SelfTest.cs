@@ -71,6 +71,33 @@ namespace Lichtbak
             return 0;
         }
 
+        /// <summary>"--selftest-overview out.png file...": one window per file, then the overview, rendered off-screen.</summary>
+        public static int RenderOverview(string path, string[] files)
+        {
+            Application.EnableVisualStyles();
+            var windows = new List<ViewerForm>();
+            foreach (string f in files)
+            {
+                var w = new ViewerForm(true) { ShowInTaskbar = false, StartPosition = FormStartPosition.Manual };
+                w.Load += delegate { w.WindowState = FormWindowState.Normal; w.Bounds = new Rectangle(-4000, -4000, 800, 600); };
+                w.Show();
+                w.AddFiles(new[] { Path.GetFullPath(f) }, false);
+                windows.Add(w);
+            }
+            DateTime start = DateTime.Now;
+            while (windows.Exists(w => !w.TestReady()) && (DateTime.Now - start).TotalSeconds < 15)
+            {
+                Application.DoEvents();
+                System.Threading.Thread.Sleep(50);
+            }
+            var overview = new Overview(windows, windows[0]) { TopMost = false };
+            overview.Bounds = new Rectangle(-4000, -4000, 1600, 900);
+            overview.Relayout();
+            overview.CreateControl();
+            Render(overview, Path.GetDirectoryName(path), Path.GetFileName(path), new StringBuilder());
+            return 0;
+        }
+
         /// <summary>"--selftest-setup out.png": renders the setup window, before and after installing.</summary>
         public static int RenderSetup(string path)
         {
