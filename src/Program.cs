@@ -74,11 +74,11 @@ namespace Lichtbak
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
-            var form = new ViewerForm();
-            var server = new Thread(() => Serve(form)) { IsBackground = true, Name = "pipe" };
+            Viewers.Init();
+            Viewers.Open(files);
+            var server = new Thread(Serve) { IsBackground = true, Name = "pipe" };
             server.Start();
-            form.Load += delegate { form.AddFiles(files, true); };
-            Application.Run(form);
+            Application.Run();
             GC.KeepAlive(mutex);
             return 0;
         }
@@ -118,7 +118,7 @@ namespace Lichtbak
             return false;
         }
 
-        private static void Serve(ViewerForm form)
+        private static void Serve()
         {
             while (true)
             {
@@ -134,11 +134,10 @@ namespace Lichtbak
                         var files = new List<string>();
                         for (int i = 1; i < lines.Length; i++) files.Add(lines[i].TrimEnd('\r'));
                         bool quit = lines[0] == "quit";
-                        while (!form.IsHandleCreated) Thread.Sleep(50);
-                        form.BeginInvoke((MethodInvoker)delegate
+                        Viewers.Post(delegate
                         {
-                            if (quit) form.Close();
-                            else form.AddFiles(files, true);
+                            if (quit) Viewers.CloseAll();
+                            else Viewers.Open(files);
                         });
                     }
                 }

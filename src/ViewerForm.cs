@@ -18,7 +18,8 @@ namespace Lichtbak
         private readonly ImageView _view = new ImageView();
         private readonly Loader _loader;
         private readonly ContextMenuStrip _menu = new ContextMenuStrip();
-        private readonly Settings _settings = Settings.Load();
+        private readonly Settings _settings = Settings.Shared;
+        private readonly bool _single;
         private int _current = -1;
 
         // Files that arrive within a moment of each other (Explorer starting us once per file)
@@ -32,8 +33,12 @@ namespace Lichtbak
         private Rectangle _savedBounds;
         private bool _savedSidebar;
 
-        public ViewerForm()
+        public ViewerForm() : this(false) { }
+
+        /// <summary>single: a window for one picture (the "own window" setting); starts without sidebar.</summary>
+        public ViewerForm(bool single)
         {
+            _single = single;
             Text = Program.Name;
             Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
             KeyPreview = true;
@@ -55,10 +60,10 @@ namespace Lichtbak
 
             _strip.Dock = DockStyle.Left;
             _strip.Width = Math.Max((int)(110 * dpi), (int)(_settings.SidebarWidth * dpi));
-            _strip.Visible = _settings.Sidebar;
+            _strip.Visible = _settings.Sidebar && !single;
             _grip.Dock = DockStyle.Left;
             _grip.Width = Math.Max(4, (int)(5 * dpi));
-            _grip.Visible = _settings.Sidebar;
+            _grip.Visible = _strip.Visible;
             _view.Dock = DockStyle.Fill;
             _view.EmptyText = Strings.T("Drop pictures here or press Ctrl+O", "Sleep afbeeldingen hierheen of druk op Ctrl+O");
             Controls.Add(_view);
@@ -77,6 +82,8 @@ namespace Lichtbak
             _view.NeedFull += RequestLarge;
             _view.ZoomChanged += delegate { Flash(); };
             _view.ContextMenuStrip = _menu;
+            _view.SidebarToggle += ToggleSidebar;
+            _view.SidebarShown = _strip.Visible;
             _grip.MouseMove += GripMove;
 
             BuildMenu();
@@ -138,6 +145,11 @@ namespace Lichtbak
             if (show != null) ShowAt(show.Index);
             else if (_items.Count == 0) ShowAt(-1);
             if (activate) BringForward();
+        }
+
+        public bool Contains(string path)
+        {
+            return _items.Any(p => string.Equals(p.Path, path, StringComparison.OrdinalIgnoreCase));
         }
 
         private void Renumber()
@@ -277,7 +289,7 @@ namespace Lichtbak
 
         // ------------------------------------------------------------- commands
 
-        private ToolStripMenuItem _sidebarItem;
+        private ToolStripMenuItem _sidebarItem, _separateItem;
 
         private void BuildMenu()
         {
@@ -292,6 +304,12 @@ namespace Lichtbak
             Add(Strings.T("Zoom out", "Uitzoomen"), "Ctrl+-", delegate { _view.ZoomBy(0.8f, null); });
             Add(Strings.T("Full screen", "Volledig scherm"), "F11", delegate { ToggleFullScreen(); }).Tag = "always";
             _sidebarItem = Add(Strings.T("Sidebar", "Zijbalk"), "Tab", delegate { ToggleSidebar(); });
+            _separateItem = Add(Strings.T("Open each picture in its own window", "Elke afbeelding in een eigen venster"), null, delegate
+            {
+                _settings.SeparateWindows = !_settings.SeparateWindows;
+                _settings.Save();
+            });
+            _separateItem.Tag = "always";
             _menu.Items.Add(new ToolStripSeparator());
             Add(Strings.T("Add pictures…", "Afbeeldingen toevoegen…"), "Ctrl+O", delegate { OpenDialog(); }).Tag = "always";
             Add(Strings.T("Remove from list", "Uit de lijst halen"), "Del", delegate { Remove(_current); });
@@ -303,6 +321,7 @@ namespace Lichtbak
                     if (item is ToolStripMenuItem && item != _sidebarItem && (string)item.Tag != "always")
                         item.Enabled = any;
                 _sidebarItem.Checked = _strip.Visible;
+                _separateItem.Checked = _settings.SeparateWindows;
             };
         }
 
@@ -389,8 +408,10 @@ namespace Lichtbak
             bool show = !_strip.Visible;
             _strip.Visible = show;
             _grip.Visible = show;
-            if (!_fullScreen) _settings.Sidebar = show;
+            if (!_fullScreen && !_single) _settings.Sidebar = show;
             if (show) _strip.EnsureVisible(_current);
+            _view.SidebarShown = show;
+            _view.Invalidate();
         }
 
         private void ToggleFullScreen()
@@ -405,6 +426,7 @@ namespace Lichtbak
                 WindowState = FormWindowState.Normal;
                 Bounds = Screen.FromControl(this).Bounds;
                 _strip.Visible = _grip.Visible = false;
+                _view.SidebarShown = false;
                 _view.BackColor = Color.Black;
             }
             else
@@ -414,6 +436,7 @@ namespace Lichtbak
                 Bounds = _savedBounds;
                 WindowState = _savedState;
                 _strip.Visible = _grip.Visible = _savedSidebar;
+                _view.SidebarShown = _savedSidebar;
                 ApplyTheme();
             }
         }

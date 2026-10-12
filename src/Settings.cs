@@ -11,6 +11,10 @@ namespace Lichtbak
         public bool Maximized;
         public bool Sidebar = true;
         public int SidebarWidth = 170;
+        public bool SeparateWindows;
+
+        /// <summary>One copy for all windows of the process.</summary>
+        public static readonly Settings Shared = Load();
 
         private static string FilePath { get { return Path.Combine(Log.Folder, "settings.ini"); } }
 
@@ -34,6 +38,7 @@ namespace Lichtbak
                         case "maximized": s.Maximized = value == "1"; break;
                         case "sidebar": s.Sidebar = value != "0"; break;
                         case "sidebarwidth": s.SidebarWidth = int.Parse(value); break;
+                        case "separatewindows": s.SeparateWindows = value == "1"; break;
                     }
                 }
             }
@@ -52,6 +57,7 @@ namespace Lichtbak
                     "maximized=" + (Maximized ? "1" : "0"),
                     "sidebar=" + (Sidebar ? "1" : "0"),
                     "sidebarwidth=" + SidebarWidth,
+                    "separatewindows=" + (SeparateWindows ? "1" : "0"),
                 });
             }
             catch (Exception e) { Log.Write("saving settings: " + e.Message); }

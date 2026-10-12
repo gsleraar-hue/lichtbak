@@ -23,8 +23,10 @@ Choose *More info* > *Run anyway*.
   (*Show more options*) you will also find **Open in Lichtbak**.
 - Everything you open ends up in **one window**. Pictures you open later are added to the
   same window. A selection is sorted by name, the way Explorer sorts it (photo2 before photo10).
+  Prefer a window per picture? Right-click > **Open each picture in its own window**.
 - **Sidebar:** click a thumbnail to show it. Drag thumbnails to change the order, or drag one
-  into another app or folder to copy the file. **Tab** shows or hides the sidebar.
+  into another app or folder to copy the file. The button in the top-left corner, or **Tab**,
+  shows or hides the sidebar.
 - **Browse** with the arrow keys, Page Up/Down, Home/End, or the mouse wheel.
 - **Zoom** with Ctrl + mouse wheel or a touchpad pinch, Ctrl+plus/minus, **Ctrl+0** to fit
   the window and **Ctrl+1** for actual size. Double-click switches between the two. When zoomed

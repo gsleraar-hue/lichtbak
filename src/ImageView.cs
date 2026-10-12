@@ -32,6 +32,10 @@ namespace Lichtbak
         public event Action ZoomChanged;
         /// <summary>Wheel without Ctrl while the picture fits: -1 previous, +1 next.</summary>
         public event Action<int> Step;
+        /// <summary>The sidebar button in the top-left corner was clicked.</summary>
+        public event Action SidebarToggle;
+        public bool SidebarShown = true;
+        private bool _buttonHover;
 
         public ImageView()
         {
@@ -202,7 +206,46 @@ namespace Lichtbak
 
         protected override void OnPaint(PaintEventArgs e)
         {
-            Graphics g = e.Graphics;
+            PaintPicture(e.Graphics);
+            DrawSidebarButton(e.Graphics);
+        }
+
+        private Rectangle SidebarButton
+        {
+            get
+            {
+                float d = DeviceDpi / 96f;
+                return new Rectangle((int)(10 * d), (int)(10 * d), (int)(34 * d), (int)(28 * d));
+            }
+        }
+
+        /// <summary>Preview-style toggle: a window outline with the left panel filled while the sidebar shows.</summary>
+        private void DrawSidebarButton(Graphics g)
+        {
+            Rectangle b = SidebarButton;
+            float d = DeviceDpi / 96f;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            bool onPicture = BackColor.GetBrightness() < 0.5f;
+            Color fill = Color.FromArgb(_buttonHover ? 200 : 130, onPicture ? Color.FromArgb(45, 45, 45) : Color.FromArgb(250, 250, 250));
+            using (GraphicsPath path = Modern.Round(b, 6 * d))
+            using (var brush = new SolidBrush(fill))
+                g.FillPath(brush, path);
+
+            Color ink = Color.FromArgb(_buttonHover ? 255 : 210, onPicture ? Color.White : Color.FromArgb(40, 40, 40));
+            var icon = new RectangleF(b.X + b.Width / 2f - 8 * d, b.Y + b.Height / 2f - 6.5f * d, 16 * d, 13 * d);
+            using (var pen = new Pen(ink, 1.4f * d))
+            using (GraphicsPath frame = Modern.Round(icon, 2.5f * d))
+            {
+                g.DrawPath(pen, frame);
+                g.DrawLine(pen, icon.X + 5.5f * d, icon.Y, icon.X + 5.5f * d, icon.Bottom);
+            }
+            if (SidebarShown)
+                using (var brush = new SolidBrush(ink))
+                    g.FillRectangle(brush, icon.X + 1.5f * d, icon.Y + 1.5f * d, 4f * d, icon.Height - 3f * d);
+        }
+
+        private void PaintPicture(Graphics g)
+        {
             g.Clear(BackColor);
             Picture p = _picture;
             if (p == null)
@@ -277,6 +320,11 @@ namespace Lichtbak
         protected override void OnMouseDown(MouseEventArgs e)
         {
             base.OnMouseDown(e);
+            if (e.Button == MouseButtons.Left && SidebarButton.Contains(e.Location))
+            {
+                if (SidebarToggle != null) SidebarToggle();
+                return;
+            }
             Focus();
             if (e.Button == MouseButtons.Left && Pannable)
             {
@@ -290,12 +338,25 @@ namespace Lichtbak
         protected override void OnMouseMove(MouseEventArgs e)
         {
             base.OnMouseMove(e);
+            bool hover = !_dragging && SidebarButton.Contains(e.Location);
+            if (hover != _buttonHover)
+            {
+                _buttonHover = hover;
+                Cursor = hover ? Cursors.Hand : (Pannable ? Cursors.SizeAll : Cursors.Default);
+                Invalidate(SidebarButton);
+            }
             if (!_dragging) return;
             float s = ViewScale;
             _center = new PointF(_dragCenter.X - (e.X - _dragFrom.X) / s, _dragCenter.Y - (e.Y - _dragFrom.Y) / s);
             Rough();
             Clamp();
             Invalidate();
+        }
+
+        protected override void OnMouseLeave(EventArgs e)
+        {
+            base.OnMouseLeave(e);
+            if (_buttonHover) { _buttonHover = false; Invalidate(SidebarButton); }
         }
 
         protected override void OnMouseUp(MouseEventArgs e)
@@ -308,7 +369,7 @@ namespace Lichtbak
         protected override void OnMouseDoubleClick(MouseEventArgs e)
         {
             base.OnMouseDoubleClick(e);
-            if (e.Button != MouseButtons.Left) return;
+            if (e.Button != MouseButtons.Left || SidebarButton.Contains(e.Location)) return;
             if (_fit && FitScale < 0.999f) ActualSize(e.Location);
             else if (!_fit) Fit();
         }
